@@ -1,0 +1,28 @@
+{
+  "name": "klipp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A terminal coding agent built with TypeScript and Node.js.",
+  "type": "module",
+  "bin": {
+    "klipp": "dist/cli.js"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "dev": "npm run build && node dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run typecheck && npm run format:check && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.5",
+    "prettier": "^3.9.7",
+    "typescript": "^7.0.2"
+  }
+}
