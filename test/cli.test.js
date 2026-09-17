@@ -15,6 +15,7 @@ function run(...args) {
     encoding: "utf8",
     cwd: tmpdir(),
     timeout: 5000,
+    env: { ...process.env, GEMINI_API_KEY: "" },
   });
 }
 
@@ -37,11 +38,58 @@ test("version matches package metadata", () => {
 });
 
 test("unsupported arguments fail clearly without a stack trace", () => {
-  for (const argument of ["--unknown", "hello"]) {
+  for (const argument of ["--unknown", "-x"]) {
     const result = run(argument);
     assert.equal(result.status, 1);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /Run klipp --help/);
     assert.doesNotMatch(result.stderr, /at main/);
   }
+});
+
+test("a single prompt is acknowledged without credentials or a model call", () => {
+  for (const prompt of [
+    "hello",
+    "Explain this repository",
+    "  Keep\nthis spacing  ",
+    "Explain café ☕",
+  ]) {
+    const result = run(prompt);
+    assert.equal(result.status, 0);
+    assert.ok(result.stdout.includes(`Prompt received: ${prompt}\n`));
+    assert.match(result.stdout, /no API request was made/);
+    assert.equal(result.stderr, "");
+  }
+});
+
+test("blank prompts are rejected", () => {
+  for (const prompt of ["", " \t\n "]) {
+    const result = run(prompt);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /prompt cannot be empty/);
+  }
+});
+
+test("multiple arguments explain how to quote the prompt", () => {
+  const result = run("Explain", "this", "repository");
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "");
+  assert.match(result.stderr, /one prompt wrapped in quotes/);
+});
+
+test("option terminator allows a prompt starting with a dash", () => {
+  const result = run("--", "--explain this flag");
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Prompt received: --explain this flag/);
+});
+
+test("help and version take precedence over prompt input", () => {
+  const help = run("--help", "hello");
+  assert.equal(help.status, 0);
+  assert.match(help.stdout, /Usage: klipp/);
+  assert.doesNotMatch(help.stdout, /Prompt received:/);
+  const result = run("--version", "hello");
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout.trim(), version);
 });

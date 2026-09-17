@@ -1,30 +1,58 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
+import { loadConfig } from "./config.js";
+import { parsePrompt } from "./prompt.js";
 
 const help = `Klipp — a terminal coding agent
 
-Usage: klipp [options]
+Usage: klipp [options] ["prompt"]
 
 Options:
   -h, --help     Show this help message
   -v, --version  Show the installed version
+  --check-config Check that a Gemini API key is configured (no API request)
 
-This is the initial CLI scaffold. Model conversations are coming next.
+Examples:
+  klipp "Explain what this repository does"
+  klipp -- "--explain this flag"
+
+Prompts are acknowledged locally. Model conversations are coming next.
 `;
 
 function main(): void {
-  const { values } = parseArgs({
+  const { values, positionals } = parseArgs({
     options: {
       help: { type: "boolean", short: "h" },
       version: { type: "boolean", short: "v" },
+      "check-config": { type: "boolean" },
     },
     strict: true,
-    allowPositionals: false,
+    allowPositionals: true,
   });
 
-  if (values.help || !values.version) {
+  if (
+    values.help ||
+    (!values.version && !values["check-config"] && positionals.length === 0)
+  ) {
     process.stdout.write(help);
+    return;
+  }
+
+  if (!values.version && !values["check-config"]) {
+    const prompt = parsePrompt(positionals);
+    process.stdout.write(`Prompt received: ${prompt}\n`);
+    process.stdout.write(
+      "Gemini integration is coming next; no API request was made.\n",
+    );
+    return;
+  }
+
+  if (values["check-config"] && !values.version) {
+    loadConfig();
+    process.stdout.write(
+      "Gemini API key is configured. No API request was made; key validity and quota have not been checked.\n",
+    );
     return;
   }
 
