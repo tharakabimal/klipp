@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { loadConfig } from "./config.js";
 import { parsePrompt } from "./prompt.js";
+import { sendPrompt } from "./gemini.js";
 
 const help = `Klipp — a terminal coding agent
 
@@ -17,10 +18,11 @@ Examples:
   klipp "Explain what this repository does"
   klipp -- "--explain this flag"
 
-Prompts are acknowledged locally. Model conversations are coming next.
+Sends one prompt to Gemini and prints the completed response.
+Set GEMINI_API_KEY; optionally set GEMINI_MODEL (default: gemini-3.8-flash).
 `;
 
-function main(): void {
+async function main(): Promise<void> {
   const { values, positionals } = parseArgs({
     options: {
       help: { type: "boolean", short: "h" },
@@ -41,10 +43,8 @@ function main(): void {
 
   if (!values.version && !values["check-config"]) {
     const prompt = parsePrompt(positionals);
-    process.stdout.write(`Prompt received: ${prompt}\n`);
-    process.stdout.write(
-      "Gemini integration is coming next; no API request was made.\n",
-    );
+    const response = await sendPrompt(loadConfig(), prompt);
+    process.stdout.write(`${response}\n`);
     return;
   }
 
@@ -71,7 +71,7 @@ function main(): void {
 }
 
 try {
-  main();
+  await main();
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(`klipp: ${message}\nRun klipp --help for usage.\n`);

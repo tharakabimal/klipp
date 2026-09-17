@@ -19,7 +19,16 @@ test("configuration reads the Gemini key and trims surrounding whitespace", () =
   assert.deepEqual(loadConfig({ GEMINI_API_KEY: " fake-test-key \n" }), {
     provider: "gemini",
     apiKey: "fake-test-key",
+    model: "gemini-3.8-flash",
   });
+});
+
+test("model can be overridden through the environment", () => {
+  assert.equal(
+    loadConfig({ GEMINI_API_KEY: "fake", GEMINI_MODEL: " custom-model " })
+      .model,
+    "custom-model",
+  );
 });
 
 test("CLI loads an explicit env file without printing its key", () => {

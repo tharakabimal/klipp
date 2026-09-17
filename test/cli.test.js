@@ -47,7 +47,7 @@ test("unsupported arguments fail clearly without a stack trace", () => {
   }
 });
 
-test("a single prompt is acknowledged without credentials or a model call", () => {
+test("a valid prompt requires credentials before making a model request", () => {
   for (const prompt of [
     "hello",
     "Explain this repository",
@@ -55,10 +55,9 @@ test("a single prompt is acknowledged without credentials or a model call", () =
     "Explain café ☕",
   ]) {
     const result = run(prompt);
-    assert.equal(result.status, 0);
-    assert.ok(result.stdout.includes(`Prompt received: ${prompt}\n`));
-    assert.match(result.stdout, /no API request was made/);
-    assert.equal(result.stderr, "");
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /GEMINI_API_KEY is missing or empty/);
   }
 });
 
@@ -80,8 +79,8 @@ test("multiple arguments explain how to quote the prompt", () => {
 
 test("option terminator allows a prompt starting with a dash", () => {
   const result = run("--", "--explain this flag");
-  assert.equal(result.status, 0);
-  assert.match(result.stdout, /Prompt received: --explain this flag/);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /GEMINI_API_KEY is missing or empty/);
 });
 
 test("help and version take precedence over prompt input", () => {

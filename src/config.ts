@@ -1,6 +1,7 @@
 export interface Config {
   provider: "gemini";
   apiKey: string;
+  model: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -10,5 +11,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       "GEMINI_API_KEY is missing or empty. Set it in your environment or load a .env file with node --env-file=.env dist/cli.js --check-config.",
     );
   }
-  return { provider: "gemini", apiKey };
+  const model = env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
+  return { provider: "gemini", apiKey, model };
 }
