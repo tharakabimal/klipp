@@ -35,7 +35,7 @@ test("CLI loads an explicit env file without printing its key", () => {
   const directory = mkdtempSync(join(tmpdir(), "klipp-config-"));
   try {
     writeFileSync(join(directory, ".env"), "GEMINI_API_KEY=fake-file-secret\n");
-    const env = { ...process.env };
+    const env = { ...process.env, KLIPP_PROVIDER: "gemini" };
     delete env.GEMINI_API_KEY;
     const result = spawnSync(
       process.execPath,
@@ -52,7 +52,7 @@ test("CLI loads an explicit env file without printing its key", () => {
 });
 
 test("missing credentials fail config checks but do not block help or version", () => {
-  const env = { ...process.env, GEMINI_API_KEY: "" };
+  const env = { ...process.env, KLIPP_PROVIDER: "gemini", GEMINI_API_KEY: "" };
   for (const flag of ["--check-config", "--help", "--version"]) {
     const result = spawnSync(process.execPath, [entry, flag], {
       env,

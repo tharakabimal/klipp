@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { sendPrompt } from "../dist/gemini.js";
+import { streamPrompt } from "../dist/gemini.js";
+
+import { collect, sse } from "./stream-helpers.js";
+const sendPrompt = (...args) => collect(streamPrompt(...args));
 
 const config = {
   provider: "gemini",
@@ -22,7 +25,10 @@ test("SDK sends the exact prompt and configured model with the API key header", 
   const text = await sendPrompt(config, prompt, async (url, options) => {
     calls++;
     assert.equal(new URL(url).hostname, "generativelanguage.googleapis.com");
-    assert.match(String(url), /gemini-3\.8-flash:generateContent$/);
+    assert.match(
+      String(url),
+      /gemini-3\.8-flash:streamGenerateContent\?alt=sse$/,
+    );
     assert.equal(options.method, "POST");
     assert.equal(
       new Headers(options.headers).get("x-goog-api-key"),
@@ -30,7 +36,7 @@ test("SDK sends the exact prompt and configured model with the API key header", 
     );
     const body = JSON.parse(options.body);
     assert.equal(body.contents[0].parts[0].text, prompt);
-    return Response.json(completed);
+    return sse(completed);
   });
   assert.equal(calls, 1);
   assert.equal(text, "Hello from Gemini");
@@ -43,7 +49,12 @@ test("API failures are actionable, redact secrets, and do not retry", async () =
     [403, /rejected/],
     [404, /model not found/],
     [429, /quota or rate limit/],
-    [500, /request failed/],
+    [408, /timed out \(HTTP 408\)/],
+    [500, /service error \(HTTP 500\)/],
+    [502, /service error \(HTTP 502\)/],
+    [503, /service error \(HTTP 503\)/],
+    [504, /timed out \(HTTP 504\)/],
+    [418, /request failed \(HTTP 418\)/],
   ]) {
     let calls = 0;
     await assert.rejects(
@@ -94,7 +105,7 @@ test("blocked, empty, and incomplete responses are reported as failures", async 
     ],
   ]) {
     await assert.rejects(
-      sendPrompt(config, "Hello", async () => Response.json(body)),
+      sendPrompt(config, "Hello", async () => sse(body)),
       expected,
     );
   }

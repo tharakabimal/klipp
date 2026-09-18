@@ -15,7 +15,7 @@ function run(...args) {
     encoding: "utf8",
     cwd: tmpdir(),
     timeout: 5000,
-    env: { ...process.env, GEMINI_API_KEY: "" },
+    env: { ...process.env, KLIPP_PROVIDER: "openai", OPENAI_API_KEY: "" },
   });
 }
 
@@ -57,7 +57,7 @@ test("a valid prompt requires credentials before making a model request", () => 
     const result = run(prompt);
     assert.equal(result.status, 1);
     assert.equal(result.stdout, "");
-    assert.match(result.stderr, /GEMINI_API_KEY is missing or empty/);
+    assert.match(result.stderr, /OPENAI_API_KEY is missing or empty/);
   }
 });
 
@@ -80,7 +80,7 @@ test("multiple arguments explain how to quote the prompt", () => {
 test("option terminator allows a prompt starting with a dash", () => {
   const result = run("--", "--explain this flag");
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /GEMINI_API_KEY is missing or empty/);
+  assert.match(result.stderr, /OPENAI_API_KEY is missing or empty/);
 });
 
 test("help and version take precedence over prompt input", () => {

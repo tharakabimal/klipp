@@ -2,8 +2,9 @@
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { loadConfig } from "./config.js";
+import { printResponse } from "./output.js";
 import { parsePrompt } from "./prompt.js";
-import { sendPrompt } from "./gemini.js";
+import { streamPrompt } from "./provider.js";
 
 const help = `Klipp — a terminal coding agent
 
@@ -12,14 +13,15 @@ Usage: klipp [options] ["prompt"]
 Options:
   -h, --help     Show this help message
   -v, --version  Show the installed version
-  --check-config Check that a Gemini API key is configured (no API request)
+  --check-config Check provider credentials are configured (no API request)
 
 Examples:
   klipp "Explain what this repository does"
   klipp -- "--explain this flag"
 
-Sends one prompt to Gemini and prints the completed response.
-Set GEMINI_API_KEY; optionally set GEMINI_MODEL (default: gemini-3.8-flash).
+Sends one prompt to the selected provider and prints response chunks as they arrive.
+Default: Gemini, gemini-3.8-flash. Set GEMINI_API_KEY; optionally GEMINI_MODEL.
+To use OpenAI, set KLIPP_PROVIDER=openai and OPENAI_API_KEY.
 `;
 
 async function main(): Promise<void> {
@@ -43,15 +45,14 @@ async function main(): Promise<void> {
 
   if (!values.version && !values["check-config"]) {
     const prompt = parsePrompt(positionals);
-    const response = await sendPrompt(loadConfig(), prompt);
-    process.stdout.write(`${response}\n`);
+    await printResponse(streamPrompt(loadConfig(), prompt));
     return;
   }
 
   if (values["check-config"] && !values.version) {
-    loadConfig();
+    const config = loadConfig();
     process.stdout.write(
-      "Gemini API key is configured. No API request was made; key validity and quota have not been checked.\n",
+      `${config.provider === "openai" ? "OpenAI" : "Gemini"} API key is configured. No API request was made; key validity and quota have not been checked.\n`,
     );
     return;
   }

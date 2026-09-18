@@ -2,9 +2,9 @@
 
 A terminal coding agent built with **TypeScript and Node.js 24**.
 
-Klipp is in early development. It currently sends one prompt to Gemini and prints
-the completed response. It does not yet read or modify repository files, run
-commands, stream responses, or retain conversation history.
+Klipp is in early development. It currently sends one prompt to Gemini (or OpenAI) and prints
+response chunks as they arrive. It does not yet read or modify repository files, run
+commands or retain conversation history.
 
 ## Getting started
 
@@ -19,10 +19,19 @@ npm start -- --help
 ## Configuration
 
 Get a Gemini API key through [Google AI Studio](https://aistudio.google.com/apikey).
-Copy `.env.example` to `.env` and add your key using your editor:
+Use a Free Tier project for free API access; selecting a model in Klipp does not change your billing tier.
+For a new setup, copy `.env.example` to `.env` and add your key using your editor:
 
 ```sh
 cp .env.example .env
+```
+
+If `.env` already exists, preserve its contents and add or update:
+
+```dotenv
+KLIPP_PROVIDER=gemini
+GEMINI_API_KEY=your_key_here
+GEMINI_MODEL=gemini-3.8-flash
 ```
 
 Check your configuration:
@@ -34,10 +43,16 @@ node --env-file=.env dist/cli.js --check-config
 The check confirms that a nonblank key is configured without printing it or making
 an API request. It does not verify key validity, model access, or quota.
 
-| Variable         | Purpose                                        |
-| ---------------- | ---------------------------------------------- |
-| `GEMINI_API_KEY` | Required Gemini API key                        |
-| `GEMINI_MODEL`   | Optional model; defaults to `gemini-3.8-flash` |
+| Variable         | Purpose                        |
+| ---------------- | ------------------------------ |
+| `KLIPP_PROVIDER` | `gemini` (default) or `openai` |
+| `OPENAI_API_KEY` | Required when using OpenAI     |
+| `OPENAI_MODEL`   | Defaults to `gpt-4.1-mini`     |
+| `GEMINI_API_KEY` | Required when using Gemini     |
+| `GEMINI_MODEL`   | Defaults to `gemini-3.8-flash` |
+
+To compare OpenAI, set `KLIPP_PROVIDER=openai`. Each provider uses only its own
+key and model settings. There is no automatic fallback between providers.
 
 You can also export these variables in your shell. `.env` files are ignored by
 Git and must be loaded explicitly with `--env-file`; existing shell variables
@@ -57,10 +72,12 @@ If `GEMINI_API_KEY` is already exported in your shell:
 npm start -- "Explain TypeScript's unknown type"
 ```
 
-Only the supplied prompt is sent to Gemini. Each invocation starts a new request,
-and the full response appears after generation completes. Requests time out
-after 60 seconds and are not retried automatically. Your Gemini account's model
-access, quota, and billing settings apply.
+Only the supplied prompt is sent to the selected provider. Each invocation starts a new request,
+and text appears as it is generated. If streaming fails, partial text stays visible
+and Klipp reports an error without restarting the answer. Requests time out
+after 60 seconds and are not retried automatically. Your provider account's model
+access, quota, and billing settings apply. OpenAI uses the Responses API with
+`store: false`.
 
 For a prompt beginning with a dash, use the option terminator:
 
@@ -90,7 +107,7 @@ npm run check
 ```
 
 This runs TypeScript checking, formatting checks, a build, and tests. Tests use
-fake credentials and mocked responses; they do not call Gemini or consume quota.
+fake credentials and mocked responses; they do not call providers or consume quota.
 GitHub Actions runs checks on Linux, macOS, and Windows.
 
 Use `npm run format` to format files. Generated output lives in `dist/` and is not
